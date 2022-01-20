@@ -1,0 +1,55 @@
+#1. Data collection
+
+import snscrape.modules.twitter as sntwitter
+import pandas as pd
+
+tweets_list=[]
+
+for i, tweet in enumerate(sntwitter.TwitterSearchScraper('#BNB since:2012-01-01 until:2021-11-19').get_items()):
+  if i%500 == 0:
+      print(f'{i/500}th iter')
+      print(tweet.date)
+  if i > 100000:
+      break
+  tweets_list.append([tweet.date, tweet.id, tweet.content, tweet.username, tweet])
+    
+tweets_df = pd.DataFrame(tweets_list, columns=['Datetime', 'Tweet id', 'Text', 'Username','Tweet'])
+tweets_df.drop('Tweet',axis = 1, inplace = True)
+tweets_df
+
+import csv
+tweets_df.to_csv('BNB_data6.csv', index = False, encoding = 'utf-8')
+
+from google.colab import files
+files.download('BNB_data6.csv')
+
+#!pip -q install git+https://github.com/JustAnotherArchivist/snscrape.git
+import csv
+import snscrape
+import snscrape.modules.twitter as sntwitter
+import pandas as pd
+import datetime
+from datetime import datetime, timedelta, date
+
+def scrapetwt(search_words,date_since,numTweets):
+    date_start = date.fromisoformat(date_since)
+    tweets_list = []
+    for i in range(30):
+        plus = i
+        date_till = date_start + timedelta(days = plus)
+        searchfor = f"{search_words} since:{date_till} until:{date_till + timedelta(days=1)} "
+        
+        print(f'start scraping {date_till}')
+        for i,tweet in enumerate(sntwitter.TwitterSearchScraper(searchfor).get_items()):
+            
+            if i > numTweets:
+                break
+            tweets_list.append([tweet.date, tweet.id, tweet.content, tweet.username])
+    
+    tweets_df = pd.DataFrame(tweets_list, columns=['Datetime', 'Tweet id', 'Text', 'Username'])
+    tweets_df.to_csv(f'C:/Users/admin/Downloads/{search_words}{date_since}.csv', index = False)
+
+scrapetwt('#BNB','2021-06-01',334) 
+
+
+
