@@ -1,0 +1,92 @@
+#2. Preprocessing
+
+import re
+import pandas as pd
+from nltk.corpus import stopwords
+from wordcloud import WordCloud, STOPWORDS
+import spacy
+from nltk.sentiment.vader import SentimentIntensityAnalyzer
+import nltk
+nltk.download('vader_lexicon')
+import matplotlib.pyplot as plt
+%matplotlib inline
+
+from google.colab import drive
+drive.mount('/content/drive')
+df = pd.read_csv('/content/drive/MyDrive/data_colab/CHLIZ_data.csv')
+df
+
+df.describe()
+
+nlp = spacy.load('en_core_web_sm', disable=['parser', 'ner'])
+
+for i in range (len(df)):
+  df.iloc[i,2] = str(df.iloc[i,2])
+df
+
+df['new_Text'] = df['Text'].apply(lambda x: " ".join(x.lower() for x in x.split()))
+df['new_Text'].head()
+
+df['new_Text'] = df['new_Text'].str.replace('[^\w\s]','')
+df['new_Text'].head()
+
+nltk.download('stopwords')
+
+def remove_emoji(text):
+    emoji_pattern = re.compile("["
+                           u"\U0001F600-\U0001F64F"  # emoticons
+                           u"\U0001F300-\U0001F5FF"  # symbols & pictographs
+                           u"\U0001F680-\U0001F6FF"  # transport & map symbols
+                           u"\U0001F1E0-\U0001F1FF"  # flags 
+                           u"\U00002702-\U000027B0"
+                           u"\U000024C2-\U0001F251"
+                           "]+", flags=re.UNICODE)
+    return emoji_pattern.sub(r'', text)
+df['new_Text'] = df['new_Text'].apply(lambda x: remove_emoji(x))
+
+stop = stopwords.words('english')
+df['new_Text'] = df['new_Text'].apply(lambda x: " ".join(x for x in x.split() if x not in stop))
+df.head(20)
+
+def space(comment):
+    doc = nlp(comment)
+    return " ".join([token.lemma_ for token in doc])
+df['new_Text']= df['new_Text'].apply(space)
+df.head(20)
+
+df.describe()
+
+datas = []
+for i in range(len(df)):
+    para = []
+    para.append('CHLIZ')
+    para.append(df.iloc[i,0])
+    para.append(df.iloc[i,4])
+    datas.append(para)
+    
+vader = SentimentIntensityAnalyzer()
+
+columns = ['ticker','date', 'tweets']
+
+CHLIZ_df = pd.DataFrame(datas, columns=columns)
+CHLIZ_df['tweets']
+
+scores = CHLIZ_df['tweets'].apply(vader.polarity_scores).tolist()
+scores_df = pd.DataFrame(scores)
+CHLIZ_df = CHLIZ_df.join(scores_df, rsuffix='_right')
+CHLIZ_df['date'] = pd.to_datetime(CHLIZ_df.date).dt.date
+CHLIZ_df.head()
+
+RCL_polarity_real.head()
+
+plt.rcParams['figure.figsize'] = [20, 6]
+
+mean_scores = RCL_polarity_real.groupby(['ticker','date']).mean()
+mean_scores = mean_scores.unstack()
+mean_scores = mean_scores.xs('compound', axis="columns").transpose()
+mean_scores.head()
+mean_scores.plot(kind = 'bar')
+plt.grid()
+
+RCL_polarity_real.to_csv("RCL_polarity_real.csv", mode='w')
+
